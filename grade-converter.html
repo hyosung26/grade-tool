@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>9↔5등급 환산 도구</title>
+<style>
+  :root{
+    --ink:#1a2233;
+    --ink-soft:#54607a;
+    --line:#dde3ec;
+    --line-soft:#eef1f6;
+    --bg:#f6f8fb;
+    --card:#ffffff;
+    --busan:#1f6feb;
+    --busan-bg:#eaf1fd;
+    --kyunggi:#0f9d8f;
+    --kyunggi-bg:#e6f6f3;
+    --warn-bg:#fff8e6;
+    --warn-line:#f0d98a;
+    --warn-ink:#8a6d1a;
+    --g1:#15803d;
+    --g2:#65a30d;
+    --g3:#ca8a04;
+    --g4:#dc8a2e;
+    --g5:#b91c1c;
+    --shadow:0 1px 3px rgba(20,30,55,.06),0 6px 18px rgba(20,30,55,.05);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic",sans-serif;
+    line-height:1.5;
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:960px;margin:0 auto;padding:20px 16px 64px;}
+
+  header{margin-bottom:18px;}
+  h1{font-size:1.32rem;letter-spacing:-.02em;margin:0 0 4px;font-weight:750;}
+  .sub{color:var(--ink-soft);font-size:.86rem;margin:0;}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);padding:18px;margin-bottom:16px;
+  }
+
+  /* 기준표 토글 */
+  .basis{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+  .basis-label{font-size:.8rem;color:var(--ink-soft);margin-right:2px;}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;}
+  .seg button{
+    border:0;background:#fff;padding:8px 14px;font-size:.86rem;font-weight:600;
+    color:var(--ink-soft);cursor:pointer;transition:.15s;font-family:inherit;
+  }
+  .seg button+button{border-left:1px solid var(--line);}
+  .seg button[data-active="busan"][aria-pressed="true"]{background:var(--busan-bg);color:var(--busan);}
+  .seg button[data-active="kyunggi"][aria-pressed="true"]{background:var(--kyunggi-bg);color:var(--kyunggi);}
+
+  /* 방향 토글 */
+  .dir{display:flex;gap:8px;margin-bottom:16px;}
+  .dir button{
+    flex:1;border:1px solid var(--line);background:#fff;border-radius:10px;
+    padding:10px;font-size:.9rem;font-weight:650;color:var(--ink-soft);cursor:pointer;
+    font-family:inherit;transition:.15s;
+  }
+  .dir button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  /* 계산기 */
+  .calc-io{display:flex;align-items:stretch;gap:14px;flex-wrap:wrap;}
+  .io-block{flex:1;min-width:200px;}
+  .io-label{font-size:.78rem;color:var(--ink-soft);font-weight:600;margin-bottom:6px;display:block;}
+  .io-input{
+    width:100%;font-size:1.7rem;font-weight:700;padding:12px 14px;border:1.5px solid var(--line);
+    border-radius:12px;font-family:inherit;color:var(--ink);background:#fcfdff;letter-spacing:-.01em;
+  }
+  .io-input:focus{outline:none;border-color:var(--busan);background:#fff;}
+  .io-out{
+    width:100%;font-size:1.7rem;font-weight:750;padding:12px 14px;border-radius:12px;
+    letter-spacing:-.01em;display:flex;align-items:center;justify-content:space-between;gap:8px;
+    border:1.5px solid transparent;
+  }
+  .io-out .unit{font-size:.78rem;font-weight:600;opacity:.7;}
+  .arrow{display:flex;align-items:center;justify-content:center;color:var(--ink-soft);font-size:1.3rem;padding-top:22px;}
+  .hint{font-size:.78rem;color:var(--ink-soft);margin-top:10px;}
+
+  .both-note{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);font-size:.84rem;}
+  .both-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:9px;font-weight:650;font-size:.9rem;}
+  .chip.busan{background:var(--busan-bg);color:var(--busan);}
+  .chip.kyunggi{background:var(--kyunggi-bg);color:var(--kyunggi);}
+  .chip .lab{font-size:.72rem;font-weight:600;opacity:.75;}
+
+  /* 참조표 */
+  .tbl-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;}
+  .tbl-head h2{font-size:1.02rem;margin:0;font-weight:700;}
+  .tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;}
+  table{border-collapse:collapse;width:100%;font-size:.86rem;min-width:420px;}
+  th,td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--line-soft);white-space:nowrap;}
+  thead th{background:#f1f4f9;font-weight:700;color:var(--ink);position:sticky;top:0;font-size:.8rem;}
+  tbody tr:last-child td{border-bottom:0;}
+  td.g5{font-weight:750;}
+  .swatch{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle;}
+
+  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.76rem;color:var(--ink-soft);margin-top:10px;}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+
+  .warn{
+    background:var(--warn-bg);border:1px solid var(--warn-line);border-radius:12px;
+    padding:14px 16px;font-size:.82rem;color:var(--warn-ink);line-height:1.65;
+  }
+  .warn b{color:#6b540f;}
+  .warn ol{margin:8px 0 0;padding-left:18px;}
+  .warn li{margin-bottom:3px;}
+
+  footer{font-size:.74rem;color:var(--ink-soft);text-align:center;margin-top:8px;line-height:1.6;}
+
+  @media (max-width:520px){
+    .arrow{display:none;}
+    .io-input,.io-out{font-size:1.45rem;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>9↔5등급 내신 환산 도구</h1>
+    <p class="sub">9등급제 입결을 5등급제로, 또는 그 반대로 추정 환산합니다 · 오차범위를 한정할 수 없는 참고용 추정값</p>
+  </header>
+
+  <div class="card">
+    <div class="basis">
+      <span class="basis-label">기준표</span>
+      <div class="seg" role="group" aria-label="환산 기준표 선택">
+        <button data-active="busan" aria-pressed="true" onclick="setBasis('busan')">부산교육청</button>
+        <button data-active="kyunggi" aria-pressed="false" onclick="setBasis('kyunggi')">경기진협</button>
+      </div>
+      <span class="basis-label" id="basisDesc" style="margin-left:4px;"></span>
+    </div>
+
+    <div class="dir" role="group" aria-label="환산 방향 선택">
+      <button id="dir95" aria-pressed="true" onclick="setDir('9to5')">9등급 → 5등급</button>
+      <button id="dir59" aria-pressed="false" onclick="setDir('5to9')">5등급 → 9등급</button>
+    </div>
+
+    <div class="calc-io">
+      <div class="io-block">
+        <label class="io-label" id="inLabel" for="inVal">입력 · 9등급 평균</label>
+        <input class="io-input" id="inVal" type="number" inputmode="decimal" step="0.01" min="1" max="9" value="2.50" oninput="compute()">
+      </div>
+      <div class="arrow">→</div>
+      <div class="io-block">
+        <span class="io-label" id="outLabel">추정 · 5등급 평균</span>
+        <div class="io-out" id="outVal" style="background:var(--busan-bg);color:var(--busan);">
+          <span id="outNum">–</span><span class="unit" id="outUnit">5등급</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="hint" id="rangeHint"></p>
+
+    <div class="both-note">
+      <div class="both-row">
+        <span class="chip busan"><span class="lab">부산</span><span id="bothBusan">–</span></span>
+        <span class="chip kyunggi"><span class="lab">경기</span><span id="bothKyunggi">–</span></span>
+        <span style="font-size:.78rem;color:var(--ink-soft);align-self:center;">동일 입력에 대한 두 표 동시 비교</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tbl-head">
+      <h2 id="tblTitle">환산 참조표</h2>
+      <span style="font-size:.78rem;color:var(--ink-soft);" id="tblBasis"></span>
+    </div>
+    <div class="tbl-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>5등급 평균</th>
+            <th>9등급 환산</th>
+            <th>누적비</th>
+          </tr>
+        </thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+    </div>
+    <div class="legend">
+      <span><i class="swatch" style="background:var(--g1)"></i>1등급대</span>
+      <span><i class="swatch" style="background:var(--g2)"></i>2등급대</span>
+      <span><i class="swatch" style="background:var(--g3)"></i>3등급대</span>
+      <span><i class="swatch" style="background:var(--g4)"></i>4등급대</span>
+      <span><i class="swatch" style="background:var(--g5)"></i>5등급</span>
+    </div>
+  </div>
+
+  <div class="warn">
+    <b>반드시 짚어야 할 한계 — 정밀 매칭이 아닌 참고용 추정값입니다.</b>
+    <ol>
+      <li>두 표의 모집단이 다릅니다. 부산교육청표는 부산 관내 고1, 경기진협표는 경기 협력교 기준이며, 전국 대학 합격생 분포와 일치한다는 보장이 없습니다.</li>
+      <li>입결 뷰어의 9등급 컷은 대학 반영교과(주로 국·영·수·사·과) 기준일 가능성이 높고, 환산표는 공통과목 중심 전체 평균 기준이라 분모 과목군이 다를 수 있습니다.</li>
+      <li>5등급제는 상대평가 과목 수가 더 많고 고교학점제로 과목당 이수인원이 줄어, 학년이 오를수록 상위 등급 유지가 더 어려워질 수 있습니다(표 상단 음영 구간은 예상치).</li>
+      <li>수능최저·서류·면접이 합격을 가르는 경우가 많아 등급만으로 합격을 판단할 수 없습니다.</li>
+    </ol>
+  </div>
+
+  <footer>
+    환산 기준 · 부산광역시교육청학력개발원 진로진학지원센터(고1 1~2학기, 88개교 14,331명) / 경기진학지도협의회(63개교 16,110명)<br>
+    구간 사이값은 선형보간으로 추정 · 상담 시 추정값임을 학생에게 명시하여 활용
+  </footer>
+</div>
+
+<script>
+// ── 환산표 데이터 ──────────────────────────────
+// 부산교육청표: [5등급평균, 9등급환산, 누적비(%)] (고1 1~2학기 본문 표)
+const BUSAN = [
+  [1.00,1.45,1.30],[1.08,1.59,1.87],[1.16,1.78,2.76],[1.24,1.98,3.65],
+  [1.33,2.14,4.81],[1.42,2.32,5.92],[1.50,2.45,7.08],[1.66,2.72,9.51],
+  [1.83,3.03,13.03],[2.00,3.35,17.42],[2.16,3.60,21.04],[2.33,3.91,26.02],
+  [2.50,4.20,31.39],[2.66,4.46,36.58],[2.83,4.73,42.93],[3.00,5.03,49.98],
+  [3.16,5.28,55.84],[3.33,5.58,62.84],[3.50,5.86,69.09],[3.66,6.08,74.08],
+  [3.83,6.37,79.74],[4.00,6.67,84.90],[4.16,6.93,88.48],[4.33,7.20,91.75],
+  [4.50,7.48,94.07],[4.66,7.71,95.66],[4.83,8.00,97.03],[5.00,9.00,100.00]
+];
+// 경기진협표: [5등급평균, 9등급환산, 누적비(%)] — 누적비 미제공 구간은 null
+const KYUNGGI = [
+  [1.000,1.39,1.20],[1.083,1.53,null],[1.167,1.73,null],[1.250,1.87,null],
+  [1.333,2.03,null],[1.417,2.18,null],[1.500,2.31,7.81],[1.583,2.45,9.06],
+  [1.667,2.61,null],[1.750,2.73,null],[1.833,2.88,null],[1.917,3.00,null],
+  [2.000,3.16,null],[2.083,3.28,null],[2.167,3.41,null],[2.250,3.54,null],
+  [2.333,3.68,null],[2.417,3.80,null],[2.500,3.95,null],[2.583,4.08,null],
+  [2.667,4.21,null],[2.750,4.34,null],[2.833,4.48,null],[2.917,4.61,null],
+  [3.000,4.75,null],[3.083,4.87,null],[3.167,5.00,null],[3.250,5.12,null],
+  [3.333,5.24,null],[3.417,5.33,null],[3.500,5.47,null],[3.583,5.59,null],
+  [3.667,5.71,null],[3.750,5.83,null],[3.833,5.98,null],[3.917,6.09,null],
+  [4.000,6.25,null],[4.083,6.36,null],[4.167,6.50,null],[4.250,6.61,null],
+  [4.333,6.72,null],[4.417,6.81,null],[4.500,6.94,null],[4.583,7.05,null],
+  [4.667,7.18,null],[4.750,7.30,null],[4.833,7.45,null],[4.917,7.62,null],
+  [5.000,8.97,null]
+];
+
+const TABLES = {
+  busan:{data:BUSAN, name:'부산교육청', desc:'부산 관내 고1 88개교 14,331명', color:'var(--busan)', bg:'var(--busan-bg)'},
+  kyunggi:{data:KYUNGGI, name:'경기진협', desc:'경기 협력교 63개교 16,110명', color:'var(--kyunggi)', bg:'var(--kyunggi-bg)'}
+};
+
+let basis = 'busan';
+let dir = '9to5';
+
+// 선형보간: col 0(5등급) 또는 1(9등급)을 기준으로 다른 쪽 추정
+function interp(table, x, fromCol, toCol){
+  const pts = table.map(r=>[r[fromCol], r[toCol]]).sort((a,b)=>a[0]-b[0]);
+  if(x<=pts[0][0]) return pts[0][1];
+  if(x>=pts[pts.length-1][0]) return pts[pts.length-1][1];
+  for(let i=0;i<pts.length-1;i++){
+    const [x0,y0]=pts[i], [x1,y1]=pts[i+1];
+    if(x0<=x && x<=x1){
+      const r = (x1!==x0)?(x-x0)/(x1-x0):0;
+      return y0 + r*(y1-y0);
+    }
+  }
+  return null;
+}
+
+function gradeColor(g5){
+  if(g5<2) return 'var(--g1)';
+  if(g5<3) return 'var(--g2)';
+  if(g5<4) return 'var(--g3)';
+  if(g5<5) return 'var(--g4)';
+  return 'var(--g5)';
+}
+
+function setBasis(b){
+  basis=b;
+  document.querySelectorAll('.seg button').forEach(btn=>{
+    btn.setAttribute('aria-pressed', btn.dataset.active===b ? 'true':'false');
+  });
+  document.getElementById('basisDesc').textContent = TABLES[b].desc;
+  renderTable();
+  compute();
+}
+
+function setDir(d){
+  dir=d;
+  document.getElementById('dir95').setAttribute('aria-pressed', d==='9to5'?'true':'false');
+  document.getElementById('dir59').setAttribute('aria-pressed', d==='5to9'?'true':'false');
+  const inp=document.getElementById('inVal');
+  if(d==='9to5'){
+    document.getElementById('inLabel').textContent='입력 · 9등급 평균';
+    document.getElementById('outLabel').textContent='추정 · 5등급 평균';
+    document.getElementById('outUnit').textContent='5등급';
+    inp.min=1; inp.max=9; inp.value='2.50';
+  }else{
+    document.getElementById('inLabel').textContent='입력 · 5등급 평균';
+    document.getElementById('outLabel').textContent='추정 · 9등급 평균';
+    document.getElementById('outUnit').textContent='9등급';
+    inp.min=1; inp.max=5; inp.value='1.50';
+  }
+  compute();
+}
+
+function compute(){
+  const raw = parseFloat(document.getElementById('inVal').value);
+  const outNum=document.getElementById('outNum');
+  const outBox=document.getElementById('outVal');
+  const hint=document.getElementById('rangeHint');
+  const bBusan=document.getElementById('bothBusan');
+  const bKyunggi=document.getElementById('bothKyunggi');
+
+  if(isNaN(raw)){
+    outNum.textContent='–'; bBusan.textContent='–'; bKyunggi.textContent='–'; hint.textContent='';
+    return;
+  }
+
+  const fromCol = (dir==='9to5')?1:0;
+  const toCol   = (dir==='9to5')?0:1;
+
+  // 메인 출력(선택된 기준표)
+  const main = interp(TABLES[basis].data, raw, fromCol, toCol);
+  outNum.textContent = (main!=null)?main.toFixed(2):'–';
+  outBox.style.background = TABLES[basis].bg;
+  outBox.style.color = TABLES[basis].color;
+
+  // 범위 경고
+  const col = TABLES[basis].data.map(r=>r[fromCol]);
+  const lo=Math.min(...col), hi=Math.max(...col);
+  if(raw<lo || raw>hi){
+    hint.textContent = `입력값이 표 범위(${lo.toFixed(2)}~${hi.toFixed(2)})를 벗어나 경계값으로 처리되었습니다.`;
+  }else{
+    hint.textContent = (dir==='9to5')
+      ? '9등급 컷을 5등급 평균으로 역추정한 값입니다.'
+      : '5등급 평균을 9등급 평균으로 추정한 값입니다.';
+  }
+
+  // 두 표 동시 비교
+  const vb = interp(BUSAN, raw, fromCol, toCol);
+  const vk = interp(KYUNGGI, raw, fromCol, toCol);
+  bBusan.textContent = (vb!=null)?vb.toFixed(2):'–';
+  bKyunggi.textContent = (vk!=null)?vk.toFixed(2):'–';
+}
+
+function renderTable(){
+  const t=TABLES[basis];
+  document.getElementById('tblTitle').textContent = `환산 참조표 · ${t.name}`;
+  document.getElementById('tblBasis').textContent = t.desc;
+  const body=document.getElementById('tblBody');
+  body.innerHTML='';
+  t.data.forEach(r=>{
+    const [g5,g9,cum]=r;
+    const tr=document.createElement('tr');
+    const col=gradeColor(g5);
+    tr.innerHTML =
+      `<td class="g5" style="color:${col}"><span class="swatch" style="background:${col}"></span>${g5.toFixed(2)}</td>`+
+      `<td>${g9.toFixed(2)}</td>`+
+      `<td style="color:var(--ink-soft)">${cum!=null?cum.toFixed(2)+'%':'—'}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+// 초기화
+setBasis('busan');
+setDir('9to5');
+</script>
+</body>
+</html>
