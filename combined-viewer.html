@@ -39,8 +39,22 @@
   /* 분할 본문 */
   .split{flex:1 1 auto;display:flex;min-height:0;}
   .pane{min-width:0;min-height:0;display:flex;flex-direction:column;background:var(--card);}
-  .pane.left{flex:1 1 58%;border-right:1px solid var(--line);}
-  .pane.right{flex:1 1 42%;overflow-y:auto;}
+  .pane.left{flex:0 0 58%;border-right:1px solid var(--line);}
+  .pane.right{flex:1 1 auto;overflow-y:auto;}
+
+  /* 드래그 분할선 */
+  .divider{
+    flex:0 0 6px;align-self:stretch;background:var(--line);cursor:col-resize;
+    position:relative;transition:background .15s;touch-action:none;z-index:5;
+  }
+  .divider:hover,.divider.active{background:var(--busan);}
+  .divider::before{
+    content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:2px;height:34px;border-radius:2px;background:#fff;opacity:.7;
+  }
+  /* 드래그 중: iframe이 마우스 가로채지 못하게 + 전체 커서 고정 */
+  body.resizing{cursor:col-resize;user-select:none;}
+  body.resizing iframe{pointer-events:none;}
 
   .pane-head{
     flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px;
@@ -112,7 +126,8 @@
   @media (max-width:760px){
     body{overflow:auto;height:auto;}
     .split{flex-direction:column;}
-    .pane.left{flex:none;height:62vh;border-right:0;border-bottom:1px solid var(--line);}
+    .divider{display:none;}
+    .pane.left{flex:none!important;height:62vh;border-right:0;border-bottom:1px solid var(--line);}
     .pane.right{flex:none;}
   }
 </style>
@@ -145,6 +160,9 @@
         </div>
       </div>
     </div>
+
+    <!-- 드래그 분할선 -->
+    <div class="divider" id="divider" title="드래그해서 좌우 크기 조절 · 더블클릭하면 기본값"></div>
 
     <!-- 우: 환산기 -->
     <div class="pane right">
@@ -311,6 +329,50 @@ function frameLoaded(){frameOK=true;}
 setTimeout(()=>{ if(!frameOK){ document.getElementById('frameFallback').style.display='flex'; } },4000);
 
 setBasis('busan');setDir('9to5');
+
+// ── 좌우 분할선 드래그 리사이즈 ──
+(function(){
+  const split=document.querySelector('.split');
+  const left=document.querySelector('.pane.left');
+  const divider=document.getElementById('divider');
+  const MIN=260;            // 각 패널 최소 폭(px)
+  let dragging=false;
+
+  function applyWidth(px){
+    const total=split.getBoundingClientRect().width;
+    const max=total-MIN-divider.offsetWidth;
+    const w=Math.max(MIN,Math.min(px,max));
+    left.style.flexBasis=w+'px';
+  }
+  function onMove(e){
+    if(!dragging)return;
+    const x=(e.touches?e.touches[0].clientX:e.clientX);
+    applyWidth(x-split.getBoundingClientRect().left);
+    e.preventDefault();
+  }
+  function stop(){
+    if(!dragging)return;
+    dragging=false;
+    document.body.classList.remove('resizing');
+    divider.classList.remove('active');
+  }
+  function start(e){
+    // 세로 적층(모바일) 모드에서는 동작 안 함
+    if(window.matchMedia('(max-width:760px)').matches)return;
+    dragging=true;
+    document.body.classList.add('resizing');
+    divider.classList.add('active');
+    e.preventDefault();
+  }
+  divider.addEventListener('mousedown',start);
+  divider.addEventListener('touchstart',start,{passive:false});
+  window.addEventListener('mousemove',onMove);
+  window.addEventListener('touchmove',onMove,{passive:false});
+  window.addEventListener('mouseup',stop);
+  window.addEventListener('touchend',stop);
+  // 더블클릭하면 기본 비율(58%)로 초기화
+  divider.addEventListener('dblclick',()=>{ left.style.flexBasis='58%'; });
+})();
 </script>
 </body>
 </html>
