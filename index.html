@@ -363,28 +363,24 @@ function zoomStep(d){ setZoom(viewerZoom+d); }
   const split=document.querySelector('.split');
   const left=document.querySelector('.pane.left');
   const divider=document.getElementById('divider');
-  const MIN=180;            // 각 패널 최소 크기(px)
-  let dragging=false;
+  const MIN=140;            // 각 패널 최소 크기(px)
+  let dragging=false, startCoord=0, startSize=0;
   const isMobile=()=>window.matchMedia('(max-width:760px)').matches;
 
-  function apply(coord){
-    const r=split.getBoundingClientRect();
-    if(isMobile()){
-      const max=window.innerHeight-140;
-      const h=Math.max(MIN,Math.min(coord-r.top,max));
-      left.style.flexBasis='';
-      left.style.height=h+'px';
-    }else{
-      const max=r.width-MIN-divider.offsetWidth;
-      const w=Math.max(MIN,Math.min(coord-r.left,max));
-      left.style.height='';
-      left.style.flexBasis=w+'px';
-    }
-  }
   function onMove(e){
     if(!dragging)return;
     const t=e.touches?e.touches[0]:e;
-    apply(isMobile()?t.clientY:t.clientX);
+    if(isMobile()){
+      const max=window.innerHeight-72;   // 위쪽 뷰어를 화면 거의 끝까지 키울 수 있게
+      const h=Math.max(MIN,Math.min(startSize+(t.clientY-startCoord),max));
+      left.style.flexBasis='';
+      left.style.height=h+'px';
+    }else{
+      const max=split.getBoundingClientRect().width-MIN-divider.offsetWidth;
+      const w=Math.max(MIN,Math.min(startSize+(t.clientX-startCoord),max));
+      left.style.height='';
+      left.style.flexBasis=w+'px';
+    }
     e.preventDefault();
   }
   function stop(){
@@ -395,6 +391,10 @@ function zoomStep(d){ setZoom(viewerZoom+d); }
   }
   function start(e){
     dragging=true;
+    const t=e.touches?e.touches[0]:e;
+    const box=left.getBoundingClientRect();
+    startCoord=isMobile()?t.clientY:t.clientX;
+    startSize =isMobile()?box.height:box.width;
     document.body.classList.add('resizing');
     divider.classList.add('active');
     e.preventDefault();
