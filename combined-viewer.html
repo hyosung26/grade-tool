@@ -133,8 +133,8 @@
   @media (max-width:760px){
     body{overflow:auto;height:auto;}
     .split{flex-direction:column;}
-    .divider{flex:0 0 14px;width:100%;height:14px;align-self:auto;cursor:row-resize;}
-    .divider::before{width:38px;height:2px;}
+    .divider{flex:0 0 20px;width:100%;height:20px;align-self:auto;cursor:row-resize;}
+    .divider::before{width:44px;height:3px;}
     body.resizing{cursor:row-resize;}
     .pane.left{flex:none!important;height:62vh;border-right:0;border-bottom:1px solid var(--line);}
     .pane.right{flex:none;}
@@ -363,18 +363,26 @@ function zoomStep(d){ setZoom(viewerZoom+d); }
   const split=document.querySelector('.split');
   const left=document.querySelector('.pane.left');
   const divider=document.getElementById('divider');
-  const MIN=140;            // 각 패널 최소 크기(px)
+  const MIN=120;            // 각 패널 최소 크기(px)
+  const EDGE=96;            // 화면 끝 근처에서 끝까지 채우는 영역(px)
   let dragging=false, startCoord=0, startSize=0;
   const isMobile=()=>window.matchMedia('(max-width:760px)').matches;
+
+  function setH(h){ left.style.flexBasis=''; left.style.height=h+'px'; }
+  function mobileMax(){
+    return Math.max(MIN, window.innerHeight - split.getBoundingClientRect().top - divider.offsetHeight - 2);
+  }
 
   function onMove(e){
     if(!dragging)return;
     const t=e.touches?e.touches[0]:e;
     if(isMobile()){
-      const max=window.innerHeight-72;   // 위쪽 뷰어를 화면 거의 끝까지 키울 수 있게
-      const h=Math.max(MIN,Math.min(startSize+(t.clientY-startCoord),max));
-      left.style.flexBasis='';
-      left.style.height=h+'px';
+      const y=t.clientY, top=split.getBoundingClientRect().top, max=mobileMax();
+      let h;
+      if(y>=window.innerHeight-EDGE) h=max;       // 아래 끝 근처 → 위쪽 화면 가득
+      else if(y<=top+EDGE) h=MIN;                 // 위 끝 근처 → 위쪽 화면 최소
+      else h=startSize+(y-startCoord);            // 그 사이 → 손가락 따라 자유 조절
+      setH(Math.max(MIN,Math.min(h,max)));
     }else{
       const max=split.getBoundingClientRect().width-MIN-divider.offsetWidth;
       const w=Math.max(MIN,Math.min(startSize+(t.clientX-startCoord),max));
@@ -405,6 +413,7 @@ function zoomStep(d){ setZoom(viewerZoom+d); }
   window.addEventListener('touchmove',onMove,{passive:false});
   window.addEventListener('mouseup',stop);
   window.addEventListener('touchend',stop);
+  window.addEventListener('touchcancel',stop);
   // 더블클릭(또는 더블탭)하면 기본 크기로 초기화
   divider.addEventListener('dblclick',()=>{ left.style.flexBasis=''; left.style.height=''; });
 })();
